@@ -40,6 +40,32 @@ External Agent Host
           -> Linear GraphQL API
 ```
 
+```mermaid
+flowchart TD
+    User["User"]
+    Agent["External Agent Host<br/>shell-capable Agent"]
+    Skill["skills/linear-triage.md<br/>triage workflow and comment rules"]
+    CLI["saas-agent CLI"]
+    Manifest["manifests/linear.yaml<br/>Linear capability definitions"]
+    Auth["Local Keychain<br/>Linear personal API key"]
+    LinearClient["Linear API Client<br/>GraphQL queries and mutations"]
+    LinearAPI["Linear GraphQL API"]
+    Pending["Pending Action Store<br/>comment proposal state"]
+    Audit["Local Audit Log"]
+
+    User --> Agent
+    Agent --> Skill
+    Agent --> CLI
+    CLI --> Manifest
+    CLI --> Auth
+    CLI --> LinearClient
+    LinearClient --> LinearAPI
+    CLI --> Pending
+    Pending --> LinearClient
+    CLI --> Audit
+    LinearClient --> Audit
+```
+
 ## 4. Capability 设计
 
 ### 4.1 MVP Capability
@@ -311,4 +337,3 @@ pending_approve
 ### 11.3 Browser fallback
 
 Linear 第一版不需要。未来用第二个 reference SaaS 验证 API 不完整场景。
-

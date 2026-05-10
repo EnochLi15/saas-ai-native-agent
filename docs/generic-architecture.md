@@ -44,6 +44,34 @@ External Agent Host
       -> Local Audit Log
 ```
 
+```mermaid
+flowchart TD
+    User["User"]
+    Agent["External Agent Host<br/>Codex / Claude / Cursor / Cline"]
+    Skill["Generic Skill Markdown<br/>workflow rules, heuristics, safety guidance"]
+    CLI["saas-agent CLI<br/>agent-friendly semantic commands"]
+    Manifest["Capability Manifest<br/>ids, schemas, risk levels, CLI mapping"]
+    Connector["Connector Implementation<br/>provider-specific adapter"]
+    API["SaaS Official API / SDK"]
+    Browser["Optional Browser Automation<br/>future fallback"]
+    Auth["Local Auth Store<br/>Keychain / Credential Manager"]
+    Pending["Pending Action Store<br/>propose -> approve -> execute"]
+    Audit["Local Audit Log"]
+
+    User --> Agent
+    Agent --> Skill
+    Agent --> CLI
+    CLI --> Manifest
+    CLI --> Connector
+    CLI --> Auth
+    CLI --> Pending
+    CLI --> Audit
+    Connector --> API
+    Connector -. "future fallback" .-> Browser
+    Pending --> Connector
+    Connector --> Audit
+```
+
 ## 4. 核心模块
 
 ### 4.1 Agent Host
@@ -332,4 +360,3 @@ saas-agent/
 - 本地 pending action approval UI。
 - 本地 connector 状态页。
 - 本地 audit viewer。
-
