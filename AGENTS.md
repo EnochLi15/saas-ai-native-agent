@@ -15,3 +15,7 @@ This is a single-context repo: read `CONTEXT.md` and `docs/adr/` when present. S
 ### Architecture docs
 
 Architecture design documents must include architecture diagrams. Prefer Mermaid diagrams in Markdown when practical.
+
+### CLI design
+
+When designing or changing command-line interfaces, follow `docs/agent-friendly-cli-guide.md`.
