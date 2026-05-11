@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web to Agent CLI"
+  short_description: "Convert web apps into agent CLIs"
+  default_prompt: "Use $web-to-agent-cli to analyze this web app with Playwright and design an agent-friendly CLI."

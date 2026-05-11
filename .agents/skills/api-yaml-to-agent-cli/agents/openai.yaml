@@ -1,0 +1,4 @@
+interface:
+  display_name: "API YAML to Agent CLI"
+  short_description: "Turn API YAML into agent CLIs"
+  default_prompt: "Use $api-yaml-to-agent-cli to convert this api.yaml into an agent-friendly CLI design."
