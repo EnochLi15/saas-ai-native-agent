@@ -1,6 +1,7 @@
 import { defineCommand, runMain } from 'citty';
 import { versionCommand } from './commands/version.js';
 import { capabilitiesListCommand, capabilitiesShowCommand } from './commands/capabilities.js';
+import { authLoginCommand, authStatusCommand, authLogoutCommand } from './commands/auth.js';
 
 const main = defineCommand({
   meta: {
@@ -25,6 +26,17 @@ const main = defineCommand({
       subCommands: {
         list: capabilitiesListCommand as never,
         show: capabilitiesShowCommand as never,
+      },
+    }) as never,
+    auth: defineCommand({
+      meta: {
+        name: 'auth',
+        description: 'Manage provider authentication',
+      },
+      subCommands: {
+        login: authLoginCommand as never,
+        status: authStatusCommand as never,
+        logout: authLogoutCommand as never,
       },
     }) as never,
   },

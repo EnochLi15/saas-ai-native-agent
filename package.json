@@ -20,7 +20,9 @@
   },
   "dependencies": {
     "citty": "^0.1.6",
-    "js-yaml": "^4.1.1"
+    "graphql-request": "^7.4.0",
+    "js-yaml": "^4.1.1",
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
