@@ -1,5 +1,6 @@
 import { defineCommand, runMain } from 'citty';
 import { versionCommand } from './commands/version.js';
+import { capabilitiesListCommand, capabilitiesShowCommand } from './commands/capabilities.js';
 
 const main = defineCommand({
   meta: {
@@ -16,6 +17,16 @@ const main = defineCommand({
   },
   subCommands: {
     version: versionCommand as never,
+    capabilities: defineCommand({
+      meta: {
+        name: 'capabilities',
+        description: 'Inspect available capabilities',
+      },
+      subCommands: {
+        list: capabilitiesListCommand as never,
+        show: capabilitiesShowCommand as never,
+      },
+    }) as never,
   },
 });
 

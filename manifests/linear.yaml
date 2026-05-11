@@ -1,0 +1,272 @@
+provider: linear
+version: "1.0"
+capabilities:
+  - id: linear.team.search
+    name: Search Linear teams
+    description: Search for Linear teams by name or key.
+    provider: linear
+    resource: team
+    action: search
+    risk: read
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Search query for team name or key
+        limit:
+          type: number
+          description: Maximum number of teams to return
+          default: 20
+      required: []
+    output_schema:
+      type: object
+      properties:
+        teams:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              key:
+                type: string
+              name:
+                type: string
+    cli:
+      command: linear team search
+      arguments:
+        - name: query
+          flag: --query
+          type: string
+          description: Search query for team name or key
+        - name: limit
+          flag: --limit
+          type: number
+          default: 20
+          description: Maximum number of teams to return
+
+  - id: linear.issue.search
+    name: Search Linear issues
+    description: Search for Linear issues with filters for team, status, assignee, labels, and date range.
+    provider: linear
+    resource: issue
+    action: search
+    risk: read
+    input_schema:
+      type: object
+      properties:
+        team:
+          type: string
+          description: Filter by team key or id
+        status:
+          type: string
+          description: Filter by issue status/state
+        assignee:
+          type: string
+          description: Filter by assignee name or id
+        updated_before:
+          type: string
+          description: Filter issues updated before this date
+        updated_after:
+          type: string
+          description: Filter issues updated after this date
+        label:
+          type: string
+          description: Filter by label
+        limit:
+          type: number
+          description: Maximum number of issues to return
+          default: 20
+        cursor:
+          type: string
+          description: Pagination cursor
+      required: []
+    output_schema:
+      type: object
+      properties:
+        issues:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              identifier:
+                type: string
+              title:
+                type: string
+              state:
+                type: string
+              priority:
+                type: string
+              assignee:
+                type: string
+              labels:
+                type: array
+                items:
+                  type: string
+              updated_at:
+                type: string
+              url:
+                type: string
+        page_info:
+          type: object
+          properties:
+            has_next_page:
+              type: boolean
+            end_cursor:
+              type: string
+    cli:
+      command: linear issue search
+      arguments:
+        - name: team
+          flag: --team
+          type: string
+          description: Filter by team key or id
+        - name: status
+          flag: --status
+          type: string
+          description: Filter by issue status/state
+        - name: assignee
+          flag: --assignee
+          type: string
+          description: Filter by assignee
+        - name: updated-before
+          flag: --updated-before
+          type: string
+          description: Filter issues updated before date
+        - name: updated-after
+          flag: --updated-after
+          type: string
+          description: Filter issues updated after date
+        - name: label
+          flag: --label
+          type: string
+          description: Filter by label
+        - name: limit
+          flag: --limit
+          type: number
+          default: 20
+          description: Maximum number of issues
+        - name: cursor
+          flag: --cursor
+          type: string
+          description: Pagination cursor
+
+  - id: linear.issue.get
+    name: Get Linear issue details
+    description: Retrieve full details of a single Linear issue by id or identifier.
+    provider: linear
+    resource: issue
+    action: get
+    risk: read
+    input_schema:
+      type: object
+      properties:
+        id_or_identifier:
+          type: string
+          description: Issue id or identifier (e.g. PLAT-123)
+      required:
+        - id_or_identifier
+    output_schema:
+      type: object
+      properties:
+        id:
+          type: string
+        identifier:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        state:
+          type: string
+        priority:
+          type: string
+        assignee:
+          type: string
+        labels:
+          type: array
+          items:
+            type: string
+        project:
+          type: string
+        parent:
+          type: string
+        comments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              body:
+                type: string
+              author:
+                type: string
+              created_at:
+                type: string
+        url:
+          type: string
+    cli:
+      command: linear issue get
+      arguments:
+        - name: id_or_identifier
+          type: positional
+          description: Issue id or identifier (e.g. PLAT-123)
+
+  - id: linear.comment.propose
+    name: Propose a comment on a Linear issue
+    description: Generate a pending action to add a comment to a Linear issue. Does NOT write to Linear until approved.
+    provider: linear
+    resource: comment
+    action: propose
+    risk: write_propose
+    input_schema:
+      type: object
+      properties:
+        issue:
+          type: string
+          description: Target issue identifier (e.g. PLAT-123)
+        body:
+          type: string
+          description: Comment body text
+        body_file:
+          type: string
+          description: Path to file containing comment body
+      required:
+        - issue
+    output_schema:
+      type: object
+      properties:
+        requires_confirmation:
+          type: boolean
+        pending_action_id:
+          type: string
+        summary:
+          type: string
+        preview:
+          type: object
+          properties:
+            issue:
+              type: string
+            body:
+              type: string
+        expires_at:
+          type: string
+    cli:
+      command: linear comment propose
+      arguments:
+        - name: issue
+          flag: --issue
+          type: string
+          description: Target issue identifier
+        - name: body
+          flag: --body
+          type: string
+          description: Comment body text
+        - name: body-file
+          flag: --body-file
+          type: string
+          description: Path to file containing comment body
