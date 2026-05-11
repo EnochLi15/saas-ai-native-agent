@@ -2,6 +2,7 @@ import { defineCommand, runMain } from 'citty';
 import { versionCommand } from './commands/version.js';
 import { capabilitiesListCommand, capabilitiesShowCommand } from './commands/capabilities.js';
 import { authLoginCommand, authStatusCommand, authLogoutCommand } from './commands/auth.js';
+import { teamSearchCommand } from './commands/linear.js';
 
 const main = defineCommand({
   meta: {
@@ -37,6 +38,23 @@ const main = defineCommand({
         login: authLoginCommand as never,
         status: authStatusCommand as never,
         logout: authLogoutCommand as never,
+      },
+    }) as never,
+    linear: defineCommand({
+      meta: {
+        name: 'linear',
+        description: 'Linear operations',
+      },
+      subCommands: {
+        team: defineCommand({
+          meta: {
+            name: 'team',
+            description: 'Team operations',
+          },
+          subCommands: {
+            search: teamSearchCommand as never,
+          },
+        }) as never,
       },
     }) as never,
   },

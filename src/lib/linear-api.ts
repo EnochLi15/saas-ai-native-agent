@@ -2,6 +2,14 @@ import { GraphQLClient } from 'graphql-request';
 
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
 
+function createClient(token: string): GraphQLClient {
+  return new GraphQLClient(LINEAR_API_URL, {
+    headers: { Authorization: token },
+  });
+}
+
+// ── Types ──
+
 interface LinearViewer {
   id: string;
   name: string;
@@ -13,11 +21,21 @@ interface ValidateTokenResult {
   viewer: LinearViewer | null;
 }
 
+export interface LinearTeam {
+  id: string;
+  key: string;
+  name: string;
+}
+
+export interface SearchTeamsResult {
+  teams: LinearTeam[];
+}
+
+// ── Auth ──
+
 /** 使用简单 viewer 查询验证 Linear token */
 export async function validateLinearToken(token: string): Promise<ValidateTokenResult> {
-  const client = new GraphQLClient(LINEAR_API_URL, {
-    headers: { Authorization: token },
-  });
+  const client = createClient(token);
 
   try {
     const data = await client.request<{ viewer: LinearViewer }>(`
@@ -35,7 +53,6 @@ export async function validateLinearToken(token: string): Promise<ValidateTokenR
       viewer: data.viewer,
     };
   } catch (err: unknown) {
-    // 如果 token 无效，Linear 返回特定错误
     const message = (err as Error)?.message || '';
     if (
       message.includes('Authentication') ||
@@ -45,8 +62,44 @@ export async function validateLinearToken(token: string): Promise<ValidateTokenR
     ) {
       return { valid: false, viewer: null };
     }
-    // 网络错误等 —— 返回 invalid 而不是抛出，让调用方处理
-    // 区别是 viewer 为 null 且没有明确的错误类型
     return { valid: false, viewer: null };
   }
+}
+
+// ── Teams ──
+
+export async function searchTeams(
+  token: string,
+  query?: string,
+  limit = 20,
+): Promise<SearchTeamsResult> {
+  const client = createClient(token);
+
+  const gql = `
+    query($first: Int) {
+      teams(first: $first) {
+        nodes {
+          id
+          key
+          name
+        }
+      }
+    }
+  `;
+
+  const data = await client.request<{
+    teams: { nodes: LinearTeam[] };
+  }>(gql, { first: limit });
+
+  let teams = data.teams.nodes;
+
+  // 客户端过滤：按 name 或 key 匹配
+  if (query) {
+    const q = query.toLowerCase();
+    teams = teams.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.key.toLowerCase().includes(q),
+    );
+  }
+
+  return { teams };
 }
