@@ -82,6 +82,55 @@ saas-agent linear comment propose --issue PLAT-123 --body-file comment.md --outp
 saas-agent pending approve act_123 --output json
 ```
 
+## End-to-End Linear Triage Demo
+
+This demo is intentionally shell-only. A shell-capable Agent can follow it without MCP, a daemon, browser automation, or any cloud control plane.
+
+Authenticate with a Linear personal API key:
+
+```bash
+printf '%s' "$LINEAR_API_KEY" | saas-agent auth login linear --token-stdin --output json
+saas-agent auth status linear --output json
+```
+
+Discover the team and search a bounded set of issues:
+
+```bash
+saas-agent linear team search --query platform --limit 20 --output json
+saas-agent linear issue search --team PLAT --status "Todo" --limit 20 --output json
+```
+
+Inspect an issue before writing any recommendation:
+
+```bash
+saas-agent linear issue get PLAT-123 --output json
+```
+
+Draft a comment locally and create a pending action. This does not write to Linear:
+
+```bash
+cat > /tmp/linear-comment.md <<'EOF'
+This looks blocked on ownership: the issue is high priority, currently unassigned, and has not been updated recently. Can someone confirm the owner or move it back to triage?
+EOF
+
+saas-agent linear comment propose --issue PLAT-123 --body-file /tmp/linear-comment.md --output json
+saas-agent pending show act_123 --output json
+```
+
+After the user confirms the preview, approve the pending action to write the comment:
+
+```bash
+saas-agent pending approve act_123 --output json
+```
+
+If the user declines, reject it instead:
+
+```bash
+saas-agent pending reject act_123 --output json
+```
+
+The companion skill file is [skills/linear-triage.md](skills/linear-triage.md). User skill overrides may tune triage rules and comment style, but they cannot bypass pending action safety: read commands may run directly, while comment writeback must go through `linear comment propose` and `pending approve`.
+
 ## 文档导航
 
 - [通用 PRD](docs/generic-prd.md)：产品定位、MVP 范围、功能需求和成功指标。
