@@ -2,7 +2,13 @@ import { defineCommand, runMain } from 'citty';
 import { versionCommand } from './commands/version.js';
 import { capabilitiesListCommand, capabilitiesShowCommand } from './commands/capabilities.js';
 import { authLoginCommand, authStatusCommand, authLogoutCommand } from './commands/auth.js';
-import { issueGetCommand, issueSearchCommand, teamSearchCommand } from './commands/linear.js';
+import {
+  commentProposeCommand,
+  issueGetCommand,
+  issueSearchCommand,
+  teamSearchCommand,
+} from './commands/linear.js';
+import { pendingListCommand, pendingRejectCommand, pendingShowCommand } from './commands/pending.js';
 
 const main = defineCommand({
   meta: {
@@ -65,6 +71,26 @@ const main = defineCommand({
             search: issueSearchCommand as never,
           },
         }) as never,
+        comment: defineCommand({
+          meta: {
+            name: 'comment',
+            description: 'Comment operations',
+          },
+          subCommands: {
+            propose: commentProposeCommand as never,
+          },
+        }) as never,
+      },
+    }) as never,
+    pending: defineCommand({
+      meta: {
+        name: 'pending',
+        description: 'Manage pending actions',
+      },
+      subCommands: {
+        list: pendingListCommand as never,
+        show: pendingShowCommand as never,
+        reject: pendingRejectCommand as never,
       },
     }) as never,
   },

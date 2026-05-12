@@ -111,3 +111,26 @@ describe('saas-agent linear issue get', () => {
     expect(parsed.error.code).toBe('AUTH_REQUIRED');
   });
 });
+
+describe('saas-agent linear comment propose', () => {
+  it('rejects empty body before auth lookup', () => {
+    const { stderr, exitCode } = runCli([
+      'linear', 'comment', 'propose', '--issue', 'ENG-123', '--body', '', '--output', 'json',
+    ]);
+    expect(exitCode).toBe(ExitCode.USAGE);
+
+    const parsed = parseErrorFromStderr(stderr);
+    expect(parsed.error.code).toBe('VALIDATION_ERROR');
+    expect(parsed.error.field).toBe('body');
+  });
+
+  it('returns AUTH_REQUIRED after body validation when not logged in', () => {
+    const { stderr, exitCode } = runCli([
+      'linear', 'comment', 'propose', '--issue', 'ENG-123', '--body', 'Looks actionable.', '--output', 'json',
+    ]);
+    expect(exitCode).toBe(ExitCode.AUTH);
+
+    const parsed = parseErrorFromStderr(stderr);
+    expect(parsed.error.code).toBe('AUTH_REQUIRED');
+  });
+});

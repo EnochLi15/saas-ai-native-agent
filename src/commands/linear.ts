@@ -1,8 +1,10 @@
 import { defineCommand } from 'citty';
+import { readFile } from 'node:fs/promises';
 import { resolveFormat, validateFormat, printOutput, fail, logger } from '../lib/output.js';
 import { ExitCode } from '../lib/exit-codes.js';
 import { getToken } from '../lib/auth-store.js';
 import { getIssue, LinearNotFoundError, searchIssues, searchTeams } from '../lib/linear-api.js';
+import { createCommentPendingAction } from '../lib/pending-store.js';
 
 const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 100;
@@ -72,6 +74,49 @@ function validateDateFilter(field: string, value?: string): void {
       ExitCode.USAGE,
     );
   }
+}
+
+async function resolveCommentBody(args: { body?: string; 'body-file'?: string }): Promise<string> {
+  if (args.body && args['body-file']) {
+    fail(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Use either --body or --body-file, not both.',
+        field: 'body',
+      },
+      ExitCode.USAGE,
+    );
+  }
+
+  let body = args.body;
+  if (args['body-file']) {
+    try {
+      body = await readFile(args['body-file'], 'utf-8');
+    } catch (err: unknown) {
+      const message = (err as Error)?.message || 'Unable to read body file';
+      fail(
+        {
+          code: 'VALIDATION_ERROR',
+          message: `Unable to read --body-file "${args['body-file']}": ${message}`,
+          field: 'body-file',
+        },
+        ExitCode.USAGE,
+      );
+    }
+  }
+
+  if (!body || !body.trim()) {
+    fail(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'A non-empty comment body is required via --body or --body-file.',
+        field: 'body',
+      },
+      ExitCode.USAGE,
+    );
+  }
+
+  return body.trim();
 }
 
 export const teamSearchCommand = defineCommand({
@@ -267,6 +312,74 @@ export const issueGetCommand = defineCommand({
             code: 'NOT_FOUND',
             message,
             field: 'id_or_identifier',
+          },
+          ExitCode.NOT_FOUND,
+        );
+      }
+
+      fail(
+        {
+          code: 'LINEAR_API_ERROR',
+          message: `Linear API request failed: ${message}`,
+        },
+        ExitCode.NETWORK,
+      );
+    }
+  },
+});
+
+export const commentProposeCommand = defineCommand({
+  meta: {
+    name: 'propose',
+    description: 'Create a pending Linear comment action without writing to Linear',
+  },
+  args: {
+    issue: {
+      type: 'string',
+      description: 'Target issue id or identifier',
+      required: true,
+      valueHint: 'issue',
+    },
+    body: {
+      type: 'string',
+      description: 'Comment body text',
+      valueHint: 'text',
+    },
+    'body-file': {
+      type: 'string',
+      description: 'Path to a file containing the comment body',
+      valueHint: 'path',
+    },
+    output: {
+      type: 'string',
+      description: 'Output format: json or text',
+      valueHint: 'json|text',
+    },
+  },
+  async run({ args }) {
+    validateOutput(args);
+
+    const body = await resolveCommentBody(args);
+    const token = await requireToken();
+    const format = resolveFormat(args.output);
+
+    try {
+      logger.info('Validating Linear issue...');
+      const issue = await getIssue(token, args.issue);
+      const result = await createCommentPendingAction({
+        issue: issue.identifier,
+        body,
+      });
+      printOutput(result, format);
+    } catch (err: unknown) {
+      const message = (err as Error)?.message || 'Unknown error';
+
+      if (err instanceof LinearNotFoundError) {
+        fail(
+          {
+            code: 'NOT_FOUND',
+            message,
+            field: 'issue',
           },
           ExitCode.NOT_FOUND,
         );
