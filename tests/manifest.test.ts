@@ -61,6 +61,14 @@ describe('listCapabilities', () => {
     expect(team!.cli.command).toBe('linear team search');
   });
 
+  it('includes Linear issue search', () => {
+    const list = listCapabilities();
+    const issueSearch = list.find(c => c.id === 'linear.issue.search');
+    expect(issueSearch).toBeDefined();
+    expect(issueSearch!.risk).toBe('read');
+    expect(issueSearch!.cli.command).toBe('linear issue search');
+  });
+
   it('includes Linear comment propose with write_propose risk', () => {
     const list = listCapabilities();
     const comment = list.find(c => c.id === 'linear.comment.propose');

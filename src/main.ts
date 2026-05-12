@@ -2,7 +2,7 @@ import { defineCommand, runMain } from 'citty';
 import { versionCommand } from './commands/version.js';
 import { capabilitiesListCommand, capabilitiesShowCommand } from './commands/capabilities.js';
 import { authLoginCommand, authStatusCommand, authLogoutCommand } from './commands/auth.js';
-import { teamSearchCommand } from './commands/linear.js';
+import { issueGetCommand, issueSearchCommand, teamSearchCommand } from './commands/linear.js';
 
 const main = defineCommand({
   meta: {
@@ -53,6 +53,16 @@ const main = defineCommand({
           },
           subCommands: {
             search: teamSearchCommand as never,
+          },
+        }) as never,
+        issue: defineCommand({
+          meta: {
+            name: 'issue',
+            description: 'Issue operations',
+          },
+          subCommands: {
+            get: issueGetCommand as never,
+            search: issueSearchCommand as never,
           },
         }) as never,
       },
