@@ -8,7 +8,12 @@ import {
   issueSearchCommand,
   teamSearchCommand,
 } from './commands/linear.js';
-import { pendingListCommand, pendingRejectCommand, pendingShowCommand } from './commands/pending.js';
+import {
+  pendingApproveCommand,
+  pendingListCommand,
+  pendingRejectCommand,
+  pendingShowCommand,
+} from './commands/pending.js';
 
 const main = defineCommand({
   meta: {
@@ -88,6 +93,7 @@ const main = defineCommand({
         description: 'Manage pending actions',
       },
       subCommands: {
+        approve: pendingApproveCommand as never,
         list: pendingListCommand as never,
         show: pendingShowCommand as never,
         reject: pendingRejectCommand as never,

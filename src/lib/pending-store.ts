@@ -24,6 +24,11 @@ export interface PendingAction {
   created_at: string;
   expires_at: string;
   rejected_at?: string;
+  executed_at?: string;
+  execution_result?: {
+    comment_id: string | null;
+    url: string | null;
+  };
 }
 
 export interface PendingActionProposal {
@@ -48,9 +53,12 @@ export class PendingActionNotFoundError extends Error {
 }
 
 export class PendingActionConflictError extends Error {
-  constructor(message: string) {
+  code: string;
+
+  constructor(message: string, code = 'CONFLICT') {
     super(message);
     this.name = 'PendingActionConflictError';
+    this.code = code;
   }
 }
 
@@ -142,6 +150,61 @@ export async function showPendingAction(id: string): Promise<PendingAction> {
   const action = actions.find(candidate => candidate.id === id);
   if (!action) throw new PendingActionNotFoundError(id);
   return action;
+}
+
+export async function getApprovablePendingAction(id: string, now = new Date()): Promise<PendingAction> {
+  const action = await showPendingAction(id);
+
+  if (action.status === 'approved') {
+    throw new PendingActionConflictError(
+      `Pending action "${id}" has already executed.`,
+      'ALREADY_EXECUTED',
+    );
+  }
+
+  if (action.status === 'rejected') {
+    throw new PendingActionConflictError(
+      `Pending action "${id}" cannot be approved because it was rejected.`,
+      'REJECTED',
+    );
+  }
+
+  if (new Date(action.expires_at).getTime() <= now.getTime()) {
+    throw new PendingActionConflictError(
+      `Pending action "${id}" cannot be approved because it expired at ${action.expires_at}.`,
+      'EXPIRED',
+    );
+  }
+
+  return action;
+}
+
+export async function markPendingActionApproved(
+  id: string,
+  result: { comment_id: string | null; url: string | null },
+  now = new Date(),
+): Promise<PendingAction> {
+  const actions = await readActions();
+  const index = actions.findIndex(candidate => candidate.id === id);
+  if (index === -1) throw new PendingActionNotFoundError(id);
+
+  const action = actions[index];
+  if (action.status !== 'pending') {
+    throw new PendingActionConflictError(
+      `Pending action "${id}" cannot be approved because its status is "${action.status}".`,
+      action.status === 'approved' ? 'ALREADY_EXECUTED' : 'CONFLICT',
+    );
+  }
+
+  const approved: PendingAction = {
+    ...action,
+    status: 'approved',
+    executed_at: now.toISOString(),
+    execution_result: result,
+  };
+  actions[index] = approved;
+  await writeActions(actions);
+  return approved;
 }
 
 export async function rejectPendingAction(id: string, now = new Date()): Promise<PendingAction> {

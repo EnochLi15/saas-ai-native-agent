@@ -76,6 +76,11 @@ export interface LinearIssueDetail extends LinearIssueSummary {
   comments: LinearCommentSummary[];
 }
 
+export interface LinearCommentCreateResult {
+  id: string | null;
+  url: string | null;
+}
+
 export class LinearNotFoundError extends Error {
   constructor(message: string) {
     super(message);
@@ -388,4 +393,42 @@ export async function getIssue(token: string, idOrIdentifier: string): Promise<L
   }
 
   return mapIssueDetail(data.issue);
+}
+
+export async function createLinearComment(
+  token: string,
+  input: { issueId: string; body: string },
+): Promise<LinearCommentCreateResult> {
+  const client = createClient(token);
+
+  const data = await client.request<{
+    commentCreate: {
+      success: boolean;
+      comment: { id: string; url: string | null } | null;
+    };
+  }>(`
+    mutation($input: CommentCreateInput!) {
+      commentCreate(input: $input) {
+        success
+        comment {
+          id
+          url
+        }
+      }
+    }
+  `, {
+    input: {
+      issueId: input.issueId,
+      body: input.body,
+    },
+  });
+
+  if (!data.commentCreate.success) {
+    throw new Error('Linear commentCreate returned success=false.');
+  }
+
+  return {
+    id: data.commentCreate.comment?.id ?? null,
+    url: data.commentCreate.comment?.url ?? null,
+  };
 }

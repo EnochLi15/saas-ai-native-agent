@@ -11,7 +11,13 @@ vi.mock('graphql-request', () => {
   };
 });
 
-import { getIssue, LinearNotFoundError, searchIssues, validateLinearToken } from '../src/lib/linear-api.js';
+import {
+  createLinearComment,
+  getIssue,
+  LinearNotFoundError,
+  searchIssues,
+  validateLinearToken,
+} from '../src/lib/linear-api.js';
 
 function mockResponse(response: unknown | Error) {
   if (response instanceof Error) {
@@ -241,5 +247,48 @@ describe('getIssue', () => {
     mockResponse({ issue: null });
 
     await expect(getIssue('token', 'ENG-404')).rejects.toBeInstanceOf(LinearNotFoundError);
+  });
+});
+
+describe('createLinearComment', () => {
+  it('calls Linear commentCreate mutation with issue id and body', async () => {
+    mockResponse({
+      commentCreate: {
+        success: true,
+        comment: {
+          id: 'comment-1',
+          url: 'https://linear.app/acme/comment/comment-1',
+        },
+      },
+    });
+
+    const result = await createLinearComment('token', {
+      issueId: 'issue-1',
+      body: 'Approved comment.',
+    });
+
+    expect(result).toEqual({
+      id: 'comment-1',
+      url: 'https://linear.app/acme/comment/comment-1',
+    });
+    expect(requestFn).toHaveBeenCalledWith(expect.stringContaining('commentCreate'), {
+      input: {
+        issueId: 'issue-1',
+        body: 'Approved comment.',
+      },
+    });
+  });
+
+  it('throws when Linear reports an unsuccessful comment create', async () => {
+    mockResponse({
+      commentCreate: {
+        success: false,
+        comment: null,
+      },
+    });
+
+    await expect(
+      createLinearComment('token', { issueId: 'issue-1', body: 'Approved comment.' }),
+    ).rejects.toThrow('success=false');
   });
 });

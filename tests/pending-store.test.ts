@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   createCommentPendingAction,
+  getApprovablePendingAction,
   listPendingActions,
+  markPendingActionApproved,
   PendingActionConflictError,
   rejectPendingAction,
   showPendingAction,
@@ -84,5 +86,48 @@ describe('pending store', () => {
     await rejectPendingAction(created.id);
 
     await expect(rejectPendingAction(created.id)).rejects.toBeInstanceOf(PendingActionConflictError);
+  });
+
+  it('marks an action approved and blocks duplicate approval', async () => {
+    const created = await createCommentPendingAction({
+      issue: 'ENG-123',
+      body: 'Comment body',
+    });
+
+    const approved = await markPendingActionApproved(created.id, {
+      comment_id: 'comment-1',
+      url: 'https://linear.app/acme/comment/comment-1',
+    });
+    expect(approved.status).toBe('approved');
+    expect(approved.execution_result).toEqual({
+      comment_id: 'comment-1',
+      url: 'https://linear.app/acme/comment/comment-1',
+    });
+
+    await expect(getApprovablePendingAction(created.id)).rejects.toMatchObject({
+      code: 'ALREADY_EXECUTED',
+    });
+  });
+
+  it('blocks rejected and expired actions from approval', async () => {
+    const rejected = await createCommentPendingAction({
+      issue: 'ENG-123',
+      body: 'Comment body',
+    });
+    await rejectPendingAction(rejected.id);
+    await expect(getApprovablePendingAction(rejected.id)).rejects.toMatchObject({
+      code: 'REJECTED',
+    });
+
+    const expired = await createCommentPendingAction({
+      issue: 'ENG-124',
+      body: 'Comment body',
+      now: new Date('2026-05-12T10:00:00.000Z'),
+    });
+    await expect(
+      getApprovablePendingAction(expired.id, new Date('2026-05-13T10:00:00.000Z')),
+    ).rejects.toMatchObject({
+      code: 'EXPIRED',
+    });
   });
 });

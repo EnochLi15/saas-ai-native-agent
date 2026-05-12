@@ -32,7 +32,7 @@ function runCli(args: string[]): { stdout: string; stderr: string; exitCode: num
   };
 }
 
-async function seedStore() {
+async function seedStore(status = 'pending', expiresAt = '2026-05-13T10:00:00.000Z') {
   await writeFile(
     storeFile,
     JSON.stringify({
@@ -41,14 +41,14 @@ async function seedStore() {
           id: 'act_test123',
           provider: 'linear',
           capability_id: 'linear.comment.propose',
-          status: 'pending',
+          status,
           summary: 'Add a comment to ENG-123',
           issue_reference: 'ENG-123',
           preview: { issue: 'ENG-123', body: 'Looks actionable.' },
           input: { issue: 'ENG-123', body: 'Looks actionable.' },
           parameters_hash: '0'.repeat(64),
           created_at: '2026-05-12T10:00:00.000Z',
-          expires_at: '2026-05-13T10:00:00.000Z',
+          expires_at: expiresAt,
         },
       ],
     }),
@@ -101,5 +101,45 @@ describe('saas-agent pending', () => {
 
     const list = runCli(['pending', 'list', '--output', 'json']);
     expect(JSON.parse(list.stdout.trim()).actions).toEqual([]);
+  });
+
+  it('returns AUTH_REQUIRED for an approvable action when not logged in', async () => {
+    await seedStore();
+
+    const { stderr, exitCode } = runCli(['pending', 'approve', 'act_test123', '--output', 'json']);
+    expect(exitCode).toBe(ExitCode.AUTH);
+
+    const parsed = JSON.parse(stderr.trim());
+    expect(parsed.error.code).toBe('AUTH_REQUIRED');
+  });
+
+  it('blocks rejected actions before auth lookup', async () => {
+    await seedStore('rejected');
+
+    const { stderr, exitCode } = runCli(['pending', 'approve', 'act_test123', '--output', 'json']);
+    expect(exitCode).toBe(ExitCode.CONFLICT);
+
+    const parsed = JSON.parse(stderr.trim());
+    expect(parsed.error.code).toBe('REJECTED');
+  });
+
+  it('blocks expired actions before auth lookup', async () => {
+    await seedStore('pending', '2000-01-01T00:00:00.000Z');
+
+    const { stderr, exitCode } = runCli(['pending', 'approve', 'act_test123', '--output', 'json']);
+    expect(exitCode).toBe(ExitCode.CONFLICT);
+
+    const parsed = JSON.parse(stderr.trim());
+    expect(parsed.error.code).toBe('EXPIRED');
+  });
+
+  it('blocks already approved actions before auth lookup', async () => {
+    await seedStore('approved');
+
+    const { stderr, exitCode } = runCli(['pending', 'approve', 'act_test123', '--output', 'json']);
+    expect(exitCode).toBe(ExitCode.CONFLICT);
+
+    const parsed = JSON.parse(stderr.trim());
+    expect(parsed.error.code).toBe('ALREADY_EXECUTED');
   });
 });
