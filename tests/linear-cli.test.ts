@@ -69,3 +69,68 @@ describe('saas-agent linear team search', () => {
     expect(exitCode).toBe(ExitCode.AUTH);
   });
 });
+
+describe('saas-agent linear issue search', () => {
+  it('returns AUTH_REQUIRED when not logged in', () => {
+    const { stderr, exitCode } = runCli(['linear', 'issue', 'search', '--output', 'json']);
+    expect(exitCode).toBe(ExitCode.AUTH);
+
+    const parsed = parseErrorFromStderr(stderr);
+    expect(parsed.error.code).toBe('AUTH_REQUIRED');
+  });
+
+  it('rejects limit values above the bounded maximum before auth lookup', () => {
+    const { stderr, exitCode } = runCli([
+      'linear', 'issue', 'search', '--limit', '101', '--output', 'json',
+    ]);
+    expect(exitCode).toBe(ExitCode.USAGE);
+
+    const parsed = parseErrorFromStderr(stderr);
+    expect(parsed.error.code).toBe('VALIDATION_ERROR');
+    expect(parsed.error.field).toBe('limit');
+  });
+
+  it('rejects invalid updated date filters before auth lookup', () => {
+    const { stderr, exitCode } = runCli([
+      'linear', 'issue', 'search', '--updated-after', 'not-a-date', '--output', 'json',
+    ]);
+    expect(exitCode).toBe(ExitCode.USAGE);
+
+    const parsed = parseErrorFromStderr(stderr);
+    expect(parsed.error.code).toBe('VALIDATION_ERROR');
+    expect(parsed.error.field).toBe('updated-after');
+  });
+});
+
+describe('saas-agent linear issue get', () => {
+  it('returns AUTH_REQUIRED when not logged in', () => {
+    const { stderr, exitCode } = runCli(['linear', 'issue', 'get', 'ENG-123', '--output', 'json']);
+    expect(exitCode).toBe(ExitCode.AUTH);
+
+    const parsed = parseErrorFromStderr(stderr);
+    expect(parsed.error.code).toBe('AUTH_REQUIRED');
+  });
+});
+
+describe('saas-agent linear comment propose', () => {
+  it('rejects empty body before auth lookup', () => {
+    const { stderr, exitCode } = runCli([
+      'linear', 'comment', 'propose', '--issue', 'ENG-123', '--body', '', '--output', 'json',
+    ]);
+    expect(exitCode).toBe(ExitCode.USAGE);
+
+    const parsed = parseErrorFromStderr(stderr);
+    expect(parsed.error.code).toBe('VALIDATION_ERROR');
+    expect(parsed.error.field).toBe('body');
+  });
+
+  it('returns AUTH_REQUIRED after body validation when not logged in', () => {
+    const { stderr, exitCode } = runCli([
+      'linear', 'comment', 'propose', '--issue', 'ENG-123', '--body', 'Looks actionable.', '--output', 'json',
+    ]);
+    expect(exitCode).toBe(ExitCode.AUTH);
+
+    const parsed = parseErrorFromStderr(stderr);
+    expect(parsed.error.code).toBe('AUTH_REQUIRED');
+  });
+});
